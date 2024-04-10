@@ -233,7 +233,7 @@ std::ostringstream oss;
 	oss << "\"wearCabin\":" << gameState.truck.wearCabin << ",";
 	oss << "\"wearChassis\":" << gameState.truck.wearChassis << ",";
 	oss << "\"wearWheels\":" << gameState.truck.wearWheels << ",";
-	oss << "\"userSteer\":" << gameState.truck.userSteer << ",";
+	oss << "\"userSteer\":" << gameState.truck.userSteer << ","; 
 	oss << "\"userThrottle\":" << gameState.truck.userThrottle << ",";
 	oss << "\"userBrake\":" << gameState.truck.userBrake << ",";
 	oss << "\"userClutch\":" << gameState.truck.userClutch << ",";
@@ -290,7 +290,7 @@ std::ostringstream oss;
 	oss << "\"heading\":" << gameState.truck.placement.heading << ",";
 	oss << "\"pitch\":" << gameState.truck.placement.pitch << ",";
 	oss << "\"roll\":" << gameState.truck.placement.roll;
-	oss << "},";
+	oss << "},";  
 	oss << "\"acceleration\":{";
 	oss << "\"x\":" << gameState.truck.acceleration.x << ",";
 	oss << "\"y\":" << gameState.truck.acceleration.y << ",";
@@ -311,7 +311,36 @@ std::ostringstream oss;
 	oss << "\"y\":" << gameState.truck.hook.y << ",";
 	oss << "\"z\":" << gameState.truck.hook.z;
 	oss << "}";
-	oss << "}";
+	oss << "},";
+    oss << "\"trailer\":{";
+    oss << "\"attached\":" << (gameState.trailer.attached ? "true" : "false") << ",";
+    oss << "\"id\":\"" << gameState.trailer.id << "\",";
+    oss << "\"name\":\"" << gameState.trailer.name << "\",";
+    oss << "\"mass\":" << gameState.trailer.mass << ",";
+    oss << "\"wear\":" << gameState.trailer.wear << ",";
+    oss << "\"placement\":{";
+    oss << "\"x\":" << gameState.trailer.placement.x << ",";
+    oss << "\"y\":" << gameState.trailer.placement.y << ",";
+    oss << "\"z\":" << gameState.trailer.placement.z << ",";
+    oss << "\"heading\":" << gameState.trailer.placement.heading << ",";
+    oss << "\"pitch\":" << gameState.trailer.placement.pitch << ",";
+    oss << "\"roll\":" << gameState.trailer.placement.roll;
+    oss << "}";
+    oss << "},";
+    oss << "\"job\":{";
+    oss << "\"income\":" << gameState.job.income << ",";
+    oss << "\"deadlineTime\":\"" << gameState.job.deadlineTime << "\",";
+    oss << "\"remainingTime\":\"" << gameState.job.remainingTime << "\",";
+    oss << "\"sourceCity\":\"" << gameState.job.sourceCity << "\",";
+    oss << "\"sourceCompany\":\"" << gameState.job.sourceCompany << "\",";
+    oss << "\"destinationCity\":\"" << gameState.job.destinationCity << "\",";
+    oss << "\"destinationCompany\":\"" << gameState.job.destinationCompany << "\"";
+    oss << "},";
+    oss << "\"navigation\":{";
+    oss << "\"estimatedTime\":\"" << gameState.navigation.estimatedTime << "\",";
+    oss << "\"estimatedDistance\":" << gameState.navigation.estimatedDistance << ",";
+    oss << "\"speedLimit\":" << gameState.navigation.speedLimit;
+    oss << "}";
 	oss << "}";
 	
     return oss.str();
@@ -324,9 +353,13 @@ void log(std::string message){
 }
 
 int oldMemorySize = 0;
+//2MegaBytes
+int memorySize = 2048*100;
 
 std::string keys = "JANNIK";
 void writeToSharedMemory(const std::string& data) {
+    log(std::to_string(data.size()));
+
     // Generate a key for the shared memory
     key_t key = ftok("/tmp", 'A');
     if (key == -1) {
@@ -334,15 +367,17 @@ void writeToSharedMemory(const std::string& data) {
         return;
     }
     if(oldMemorySize == 0){
-		oldMemorySize = data.size();
+		//oldMemorySize = data.size();
+        oldMemorySize = 2048;
 	}
-    // Create or retrieve the shared memory segment
-    int shmid = shmget(key, oldMemorySize+1, 0666 | IPC_CREAT); // Add 1 to the size for the null terminator
+    // Create or retrieve the shared memory segment 
+    int shmid = shmget(key, memorySize, 0666 | IPC_CREAT); // Add 1 to the size for the null terminator
     if (shmid == -1) {
-        log("Fehler beim Erzeugen des Shared Memory-Segments");
+        log("Fehler beim Erzeugen11 des Shared Memory-Segments");
         return;
     }
-	oldMemorySize = data.size();
+	//oldMemorySize = data.size();
+    oldMemorySize = 2048;
     
     // Attach the shared memory to the process
     char* sharedMemory = (char*)shmat(shmid, (void*)0, 0);
@@ -361,7 +396,7 @@ void writeToSharedMemory(const std::string& data) {
     }
 }
 
-
+ 
 void overwriteSharedMemory(const std::string& newData) {
     // Generate a key for the shared memory
     key_t key = ftok("/tmp", 'A');
@@ -381,7 +416,7 @@ void overwriteSharedMemory(const std::string& newData) {
     // Get the current size of the shared memory segment
     struct shmid_ds shmInfo;
     if (shmctl(shmid, IPC_STAT, &shmInfo) == -1) {
-        log("Fehler beim Abrufen der Informationen des Shared Memory-Segments");
+        log("Fehler beim Abrufen der Informationen des Shared Memory-Segmawents");
         return;
     }
     
@@ -390,9 +425,8 @@ void overwriteSharedMemory(const std::string& newData) {
         log("Fehler beim Löschen des Shared Memory-Segments");
         return;
     }
-    
     // Create a new shared memory segment with the new size
-    shmid = shmget(key, newData.size() + 1, 0666 | IPC_CREAT); // Add 1 to the size for the null terminator
+    shmid = shmget(key, memorySize, 0666 | IPC_CREAT); // Add 1 to the size for the null terminator
     if (shmid == -1) {
         log("Fehler beim Erzeugen des neuen Shared Memory-Segments");
         return;
@@ -444,6 +478,9 @@ SCSAPI_VOID telemetry_store_speed(scs_string_t name, scs_u32_t index, const scs_
         return;
     }
 	game_state->truck.speed = (value->value_float.value)*(3.571428571);
+    if(game_state->truck.speed < 0){
+        game_state->truck.speed = -1 * game_state->truck.speed;
+    }
 }
 SCSAPI_VOID telemetry_store_rpm(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
     if(output_paused){
@@ -455,6 +492,276 @@ SCSAPI_VOID telemetry_store_rpm(scs_string_t name, scs_u32_t index, const scs_va
     }
 	game_state->truck.engineRpm = value->value_float.value;
 } 
+
+SCSAPI_VOID telemetry_store_electric_enabled(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_bool){
+        return;
+    }
+	game_state->truck.electricOn = value->value_bool.value;
+} 
+
+SCSAPI_VOID telemetry_store_engine_enabled(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_bool){
+        return;
+    }
+	game_state->truck.engineOn = value->value_bool.value;
+} 
+
+SCSAPI_VOID telemetry_store_wipers(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_bool){
+        return;
+    }
+	game_state->truck.wipersOn = value->value_bool.value;
+} 
+
+SCSAPI_VOID telemetry_store_retarder_brake(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_float){
+        return;
+    }
+	game_state->truck.retarderBrake = value->value_float.value;
+} 
+
+SCSAPI_VOID telemetry_store_park_brake(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_bool){
+        return;
+    }
+	game_state->truck.parkBrakeOn = value->value_bool.value;
+} 
+
+SCSAPI_VOID telemetry_store_motor_brake(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_bool){
+        return;
+    }
+	game_state->truck.motorBrakeOn = value->value_bool.value;
+} 
+
+SCSAPI_VOID telemetry_store_brake_air_pressure(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_float){
+        return;
+    }
+	game_state->truck.airPressure = value->value_float.value;
+} 
+
+SCSAPI_VOID telemetry_store_adblue(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_float){
+        return;
+    }
+	game_state->truck.adblue = value->value_float.value;
+} 
+
+SCSAPI_VOID telemetry_store_fuel(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_float){
+        return;
+    }
+	game_state->truck.fuel = value->value_float.value;
+} 
+
+SCSAPI_VOID telemetry_store_oil_pressure(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_float){
+        return;
+    }
+	game_state->truck.oilPressure = value->value_float.value;
+} 
+
+SCSAPI_VOID telemetry_store_oil_temperature(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_float){
+        return;
+    }
+	game_state->truck.oilTemperature = value->value_float.value;
+} 
+
+SCSAPI_VOID telemetry_store_water_temperature(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_float){
+        return;
+    }
+	game_state->truck.waterTemperature = value->value_float.value;
+} 
+
+SCSAPI_VOID telemetry_store_battery_voltage(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_float){
+        return;
+    }
+	game_state->truck.batteryVoltage = value->value_float.value;
+}
+
+SCSAPI_VOID telemetry_store_lights_dashboard(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_u32){
+        return;
+    }
+	game_state->truck.lightsDashboardValue = value->value_u32.value;
+}
+
+SCSAPI_VOID telemetry_store_lights_dashboard_on(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_bool){
+        return;
+    }
+	game_state->truck.lightsDashboardOn = value->value_bool.value;
+}
+
+SCSAPI_VOID telemetry_store_blinker_left_active(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_bool){
+        return;
+    }
+	game_state->truck.blinkerLeftActive = value->value_bool.value;
+}
+
+SCSAPI_VOID telemetry_store_blinker_right_active(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_bool){
+        return;
+    }
+	game_state->truck.blinkerRightActive = value->value_bool.value;
+}
+
+SCSAPI_VOID telemetry_store_blinker_left_on(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_bool){
+        return;
+    }
+	game_state->truck.blinkerLeftOn = value->value_bool.value;
+}
+
+SCSAPI_VOID telemetry_store_blinker_right_on(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_bool){
+        return;
+    }
+	game_state->truck.blinkerRightOn = value->value_bool.value;
+}
+
+SCSAPI_VOID telemetry_store_lights_parking(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_bool){
+        return;
+    }
+	game_state->truck.lightsParkingOn = value->value_bool.value;
+}
+
+SCSAPI_VOID telemetry_store_lights_beam_low(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_bool){
+        return;
+    }
+	game_state->truck.lightsBeamLowOn = value->value_bool.value;
+}
+
+SCSAPI_VOID telemetry_store_lights_beam_high(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_bool){
+        return;
+    }
+	game_state->truck.lightsBeamHighOn = value->value_bool.value;
+}
+
+SCSAPI_VOID telemetry_store_lights_aux_front(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_bool){
+        return;
+    }
+	game_state->truck.lightsAuxFrontOn = value->value_bool.value;
+}
+
+SCSAPI_VOID telemetry_store_lights_aux_roof(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_bool){
+        return;
+    }
+	game_state->truck.lightsAuxRoofOn = value->value_bool.value;
+}
+
+SCSAPI_VOID telemetry_store_lights_beacon(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_bool){
+        return;
+    }
+	game_state->truck.lightsBeaconOn = value->value_bool.value;
+}
+
+SCSAPI_VOID telemetry_store_lights_brake_on(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_bool){
+        return;
+    }
+	game_state->truck.lightsBrakeOn = value->value_bool.value;
+}
+
+SCSAPI_VOID telemetry_store_lights_reverse(scs_string_t name, scs_u32_t index, const scs_value_t *value, scs_context_t context){
+    if(output_paused){
+        return;
+    }
+    if(value->type != SCS_VALUE_TYPE_bool){
+        return;
+    }
+	game_state->truck.lightsReverseOn = value->value_bool.value;
+}
 
 
 
@@ -547,6 +854,31 @@ SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version, const scs_telemetry_in
 	//version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_world_placement, SCS_U32_NIL, SCS_VALUE_TYPE_euler, SCS_TELEMETRY_CHANNEL_FLAG_no_value, telemetry_store_orientation, &telemetry);
 	version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_speed, SCS_U32_NIL, SCS_VALUE_TYPE_float, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_speed, &game_state_s.truck.speed);
 	version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_engine_rpm, SCS_U32_NIL, SCS_VALUE_TYPE_float, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_rpm, &game_state_s.truck.engineRpm);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_electric_enabled, SCS_U32_NIL, SCS_VALUE_TYPE_bool, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_electric_enabled, &game_state_s.truck.electricOn);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_engine_enabled, SCS_U32_NIL, SCS_VALUE_TYPE_bool, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_engine_enabled, &game_state_s.truck.engineOn);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_wipers, SCS_U32_NIL, SCS_VALUE_TYPE_bool, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_wipers, &game_state_s.truck.wipersOn);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_parking_brake, SCS_U32_NIL, SCS_VALUE_TYPE_bool, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_park_brake, &game_state_s.truck.parkBrakeOn);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_motor_brake, SCS_U32_NIL, SCS_VALUE_TYPE_bool, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_motor_brake, &game_state_s.truck.motorBrakeOn);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_brake_air_pressure, SCS_U32_NIL, SCS_VALUE_TYPE_float, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_brake_air_pressure, &game_state_s.truck.airPressure);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_adblue, SCS_U32_NIL, SCS_VALUE_TYPE_float, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_adblue, &game_state_s.truck.adblue);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_fuel, SCS_U32_NIL, SCS_VALUE_TYPE_float, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_fuel, &game_state_s.truck.fuel);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_oil_pressure, SCS_U32_NIL, SCS_VALUE_TYPE_float, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_oil_pressure, &game_state_s.truck.oilPressure);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_oil_temperature, SCS_U32_NIL, SCS_VALUE_TYPE_float, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_oil_temperature, &game_state_s.truck.oilTemperature);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_water_temperature, SCS_U32_NIL, SCS_VALUE_TYPE_float, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_water_temperature, &game_state_s.truck.waterTemperature);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_battery_voltage, SCS_U32_NIL, SCS_VALUE_TYPE_float, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_battery_voltage, &game_state_s.truck.batteryVoltage);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_lblinker, SCS_U32_NIL, SCS_VALUE_TYPE_bool, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_blinker_left_active, &game_state_s.truck.blinkerLeftActive);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_rblinker, SCS_U32_NIL, SCS_VALUE_TYPE_bool, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_blinker_right_active, &game_state_s.truck.blinkerRightActive);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_light_parking , SCS_U32_NIL, SCS_VALUE_TYPE_bool, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_lights_parking, &game_state_s.truck.lightsParkingOn);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_light_low_beam, SCS_U32_NIL, SCS_VALUE_TYPE_bool, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_lights_beam_low, &game_state_s.truck.lightsBeamLowOn);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_light_high_beam, SCS_U32_NIL, SCS_VALUE_TYPE_bool, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_lights_beam_high, &game_state_s.truck.lightsBeamHighOn);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_light_beacon, SCS_U32_NIL, SCS_VALUE_TYPE_bool, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_lights_beacon, &game_state_s.truck.lightsBeaconOn);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_light_lblinker, SCS_U32_NIL, SCS_VALUE_TYPE_bool, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_blinker_left_on, &game_state_s.truck.blinkerLeftOn);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_light_rblinker, SCS_U32_NIL, SCS_VALUE_TYPE_bool, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_blinker_right_on, &game_state_s.truck.blinkerRightOn);
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_light_reverse, SCS_U32_NIL, SCS_VALUE_TYPE_bool, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_lights_reverse, &game_state_s.truck.lightsReverseOn);
+
+
+ 
+
 	//version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_engine_gear, SCS_U32_NIL, SCS_VALUE_TYPE_s32, SCS_TELEMETRY_CHANNEL_FLAG_none, telemetry_store_s32, &telemetry.gear);
 
 	// Remember the function we will use for logging.
@@ -566,6 +898,8 @@ SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version, const scs_telemetry_in
 	game_state->truck.speed = 0;
 	game_state->truck.engineRpm = 0; 
 	game_state->truck.gear = 0;
+    game_state->game.connected = true;
+    game_state->game.paused = true;
 	log(convertToJson(*game_state));
 	std::string data = convertToJson(*game_state);
 	overwriteSharedMemory(data);
